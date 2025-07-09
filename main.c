@@ -32,10 +32,7 @@ void Buzzer_Off(void);
 void Blink_LED(void);
 void Display_Number(uint8_t num);
 
-char enteredCode[4];
 const char correctCode[4] = { '1', '2', '3', '4' };
-uint8_t codeIndex = 0;
-
 int main(void) {
 
 	HAL_Init();
@@ -45,7 +42,6 @@ int main(void) {
 	MX_TIM2_Init();
 
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
-	codeIndex = 0;
 
 	int index = 0;
 
@@ -74,9 +70,7 @@ int main(void) {
 				LED_Off();
 				index = 0;
 			}
-
 		}
-
 	}
 }
 
