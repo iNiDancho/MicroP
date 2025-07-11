@@ -179,55 +179,50 @@ void GPIO_Config(void)
 	GPIOC->OTYPER &= ~((1 << 13) | (1 << 14));			  // Push-pull
 	GPIOC->OSPEEDR |= (3 << (13 * 2)) | (3 << (14 * 2));  // High speed
 	GPIOC->PUPDR &= ~((3 << (13 * 2)) | (3 << (14 * 2))); // No pull-up/pull-down
-	
-    GPIOA->MODER |= (2 << (15 * 2));              // Alternate function mode for PA5
-    GPIOA->AFR[1] |= (1 << ((15 - 8) * 4));        // AF1 (TIM2_CH1) for PA15
+
+	GPIOA->MODER |= (2 << (15 * 2));		// Alternate function mode for PA5
+	GPIOA->AFR[1] |= (1 << ((15 - 8) * 4)); // AF1 (TIM2_CH1) for PA15
+}
+
+void TIM2_PWM_Init(void)
+{
+	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN; // Enable TIM2 clock
+
+	TIM2->PSC = 84;	   // 84 MHz /84 = gives 100 kHz
+	TIM2->ARR = 19999; // 100 kHz / 20000 = 50 Hz
+
+	TIM2->CCR1 = 0; // Default pulse width = 1.5 ms (center)
+
+	// PWM mode 1 on CH1: active while CNT < CCR1
+	TIM2->CCMR1 &= ~TIM_CCMR1_OC1M;
+	TIM2->CCMR1 |= (6 << TIM_CCMR1_OC1M_Pos); // PWM mode 1
+	TIM2->CCMR1 |= TIM_CCMR1_OC1PE;			  // Preload enable
+
+	TIM2->CCER |= TIM_CCER_CC1E; // Enable output on CH1
+	TIM2->CR1 |= TIM_CR1_ARPE;	 // Enable auto-reload preload
+
+	TIM2->EGR |= TIM_EGR_UG;  // Generate update event
+	TIM2->CR1 |= TIM_CR1_CEN; // Enable timer
+}
+
+void GPIOA_Init(void)
+{
+
+	GPIOA->MODER &= ~(3 << (15 * 2)); // Clear mode bits for PA15
+	GPIOA->MODER |= (2 << (15 * 2));  // Alternate function mode for PA15
+
+	GPIOA->AFR[1] &= ~(0xF << ((15 - 8) * 4)); // Clear AF bits
+	GPIOA->AFR[1] |= (1 << ((15 - 8) * 4));	   // Set AF1 for TIM2_CH1
 }
 
 
-
-void TIM2_PWM_Init(void) {
-    RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;          // Enable TIM2 clock
-
-   TIM2->PSC = 84;     // Assuming 84 MHz ? gives 100 kHz
-		TIM2->ARR = 19999;   // 100 kHz / 20000 = 50 Hz
-
-
-    TIM2->CCR1 = 0;        // Default pulse width = 1.5 ms (center)
-
-    // PWM mode 1 on CH1: active while CNT < CCR1
-    TIM2->CCMR1 &= ~TIM_CCMR1_OC1M;
-    TIM2->CCMR1 |=  (6 << TIM_CCMR1_OC1M_Pos);  // PWM mode 1
-    TIM2->CCMR1 |=  TIM_CCMR1_OC1PE;            // Preload enable
-
-    TIM2->CCER |= TIM_CCER_CC1E;        // Enable output on CH1
-    TIM2->CR1 |= TIM_CR1_ARPE;          // Enable auto-reload preload
-
-    TIM2->EGR |= TIM_EGR_UG;            // Generate update event
-    TIM2->CR1 |= TIM_CR1_CEN;           // Enable timer
-}
-
-
-void GPIOA_Init(void) {
-
-    GPIOA->MODER &= ~(3 << (15 * 2));             // Clear mode bits for PA15
-    GPIOA->MODER |= (2 << (15 * 2));              // Alternate function mode for PA15
-
-    GPIOA->AFR[1] &= ~(0xF << ((15 - 8) * 4));     // Clear AF bits
-    GPIOA->AFR[1] |= (1 << ((15 - 8) * 4));        // Set AF1 for TIM2_CH1
-}
-
-void delay_timer2(uint32_t us) {
-    uint32_t start = TIM2->CNT;
-    while ((TIM2->CNT - start) < us);  // Wait for specified microseconds
-}
-
-void Servo_Set_Angle(uint16_t pulse) {
-    TIM2->CCR1 = pulse;                          // Set duty cycle (1000 - 2000)
+void Servo_Set_Angle(uint16_t pulse)
+{
+	TIM2->CCR1 = pulse; // Set duty cycle (1000 - 2000)
 }
 
 // ==== Main ====
-const char correctCode[4] = { '1', '2', '3', '4' };
+const char correctCode[4] = {'1', '2', '3', '4'};
 
 int main(void)
 {
@@ -239,36 +234,38 @@ int main(void)
 	int index = 0;
 	while (1)
 	{
-		
+
 		char key = Keypad_Scan();
-		if (key != '\0') {
+		if (key != '\0')
+		{
 			Display_Number(key - '0');
 			Buzzer_On();
 			delay_ms(100);
 			Buzzer_Off();
 
-			if (key != correctCode[index]) {
+			if (key != correctCode[index])
+			{
 				LED_On();
 				Display_Number(11);
-				index = 0;       // Reset index
+				index = 0; // Reset index
 			}
-			else{
-				index++;  // Move to next digit
+			else
+			{
+				index++; // Move to next digit
 			}
 
-			if (index == 4) {
-				TIM2->CCR1 = 2510;        // Default pulse width = 1.5 ms (center)//193-383
+			if (index == 4)
+			{
+				Servo_Set_Angle(2510);
 				LED_On();
 				Buzzer_On();
 
 				delay_ms(5000);
-				TIM2->CCR1 = 1000;        // Default pulse width = 1.5 ms (center)//193-383
+				Servo_Set_Angle(1000);
 				LED_Off();
 				Buzzer_Off();
-				index = 0;  // Reset for next attempt
+				index = 0; // Reset for next attempt
 			}
-
 		}
-
 	}
 }
