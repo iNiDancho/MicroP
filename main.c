@@ -218,7 +218,7 @@ void GPIOA_Init(void)
 
 void Servo_Set_Angle(uint16_t pulse)
 {
-	TIM2->CCR1 = pulse; // Set duty cycle (1000 - 2000)
+	TIM2->CCR1 = pulse; // Set duty cycle (1000 - 2500)
 }
 
 // ==== Main ====
@@ -256,7 +256,7 @@ int main(void)
 
 			if (index == 4)
 			{
-				Servo_Set_Angle(2510);
+				Servo_Set_Angle(2500);
 				LED_On();
 				Buzzer_On();
 
