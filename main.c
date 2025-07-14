@@ -245,8 +245,17 @@ int main(void)
 
 			if (key != correctCode[index])
 			{
+				Buzzer_On();
 				LED_On();
-				Display_Number(11);
+				delay_ms(2500);
+				LED_Off();
+				delay_ms(2500);
+				LED_On();
+				delay_ms(2500);
+				LED_Off();
+				delay_ms(2500);
+				Buzzer_Off();
+				Display_Number(10);
 				index = 0; // Reset index
 			}
 			else
